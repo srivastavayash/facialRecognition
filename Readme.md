@@ -1,5 +1,7 @@
 # Face Recognition Project
 
+![img.png](img.png)
+
 This project demonstrates face recognition using OpenCV and SQLite.
 
 ## Prerequisites
@@ -33,6 +35,14 @@ python detect.py
 
 
 3. Press 'q' to exit the application.
+
+## Text Recognition 
+- Place your Aadhar Card in ROI (Region of Interest)
+- Capture the New full image
+- Generate the combined img:
+
+
+  ![img_1.png](img_1.png)
 
 ## Additional Notes
 
