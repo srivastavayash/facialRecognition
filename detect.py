@@ -12,7 +12,6 @@ cam = cv2.VideoCapture(0)
 recognizer = cv2.face.LBPHFaceRecognizer_create()
 recognizer.read("recognizer/trainingdata.yml")
 
-
 # Function to get the profile of a student from the database using their ID
 def get_profile(id):
     conn = sqlite3.connect("sqlite.db")
@@ -23,6 +22,8 @@ def get_profile(id):
     conn.close()
     return profile
 
+authorized_message_displayed = False
+unauthorized_message_displayed = False
 
 while True:
     # Capture frame-by-frame
@@ -42,12 +43,23 @@ while True:
         profile = get_profile(id)
         # If the confidence level is below a certain threshold and the profile matches the detected face, print the profile information
         if profile is not None and conf < 100:
-            cv2.putText(img, "Name:" + str(profile[1]), (x, y + h + 20), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 127), 2)
-            cv2.putText(img, "Dob:" + str(profile[2]), (x, y + h + 45), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 127), 2)
-            cv2.putText(img, "Id:" + str(profile[0]), (x, y + h + 70), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 127), 2)
+            name = str(profile[1])
+            dob = str(profile[2])
+            user_id = str(profile[0])
+            cv2.putText(img, f"Name: {name}", (x, y + h + 20), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 127), 2)
+            cv2.putText(img, f"Dob: {dob}", (x, y + h + 45), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 127), 2)
+            cv2.putText(img, f"Id: {user_id}", (x, y + h + 70), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 127), 2)
+            if not authorized_message_displayed:
+                print(f"Name: {name}")
+                print("You are authorised to vote from this centre")
+                authorized_message_displayed = True
+                unauthorized_message_displayed = False
         else:
-            # If the face is not recognized, print "Unrecognized"
             cv2.putText(img, "Unrecognized", (x, y + h + 20), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+            if not unauthorized_message_displayed:
+                print("Sorry either try again or check your credentials, you are not authorised!")
+                unauthorized_message_displayed = True
+                authorized_message_displayed = False
 
     # Display the resulting frame
     cv2.imshow("FACE", img)

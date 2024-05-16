@@ -6,7 +6,6 @@ import time
 import os
 from datetime import datetime
 
-
 # Function to preprocess the image
 def preprocess_image(image):
     blurred = cv2.GaussianBlur(image, (0, 0), 3)
@@ -17,7 +16,6 @@ def preprocess_image(image):
     processed_image = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
     return processed_image
 
-
 # Function to extract the Aadhar number using regex
 def extract_aadhar_number(text):
     pattern = r'\b\d{4}\s?\d{4}\s?\d{4}\b'
@@ -26,9 +24,8 @@ def extract_aadhar_number(text):
         return match.group().replace(" ", "")
     return None
 
-
 # Function to create and save the combined image with bookmark and date-time watermark
-def create_combined_image(aadhar_number, full_image):
+def create_combined_image(aadhar_number, full_image, party_name):
     output_dir = "output"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -42,14 +39,17 @@ def create_combined_image(aadhar_number, full_image):
     bookmark_width = full_image.shape[1]
     bookmark_image = np.ones((bookmark_height, bookmark_width, 3), dtype=np.uint8) * 255
 
-    # Add the Aadhar number text to the bookmark image
+    # Add the party name text to the bookmark image
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 1
-    font_thickness = 3
-    text_size = cv2.getTextSize(aadhar_number, font, font_scale, font_thickness)[0]
-    text_x = (bookmark_width - text_size[0]) // 10
-    text_y = (bookmark_height + text_size[1]) // 3
-    cv2.putText(bookmark_image, aadhar_number, (text_x, text_y), font, font_scale, (0, 0, 0), font_thickness)
+    font_thickness =3
+    text_size = cv2.getTextSize(party_name, font, font_scale, font_thickness)[0]
+    text_x = (bookmark_width - text_size[0]) // 1
+    text_y = (bookmark_height + text_size[1]) // 4
+    overlay = bookmark_image.copy()
+    cv2.putText(overlay, party_name, (text_x, text_y), font, font_scale, (0, 0, 255), font_thickness)
+    alpha = 0.3  # Opacity factor
+    cv2.addWeighted(overlay, alpha, bookmark_image, 1 - alpha, 0, bookmark_image)
 
     # Convert the grayscale full image to a 3-channel image
     full_image_colored = cv2.cvtColor(full_image, cv2.COLOR_GRAY2BGR)
@@ -71,7 +71,6 @@ def create_combined_image(aadhar_number, full_image):
     cv2.imwrite(combined_image_path, combined_image)
     return combined_image_path
 
-
 # Function to resize and convert the image to grayscale
 def resize_and_grayscale(image, max_inch=2, dpi=300):
     max_pixels = int(max_inch * dpi)
@@ -83,7 +82,6 @@ def resize_and_grayscale(image, max_inch=2, dpi=300):
     grayscale_image = cv2.cvtColor(resized_image, cv2.COLOR_BGR2GRAY)
     return grayscale_image
 
-
 # Function to capture a frame from the camera
 def capture_frame(cap):
     ret, frame = cap.read()
@@ -91,7 +89,6 @@ def capture_frame(cap):
         print("Error: Unable to capture frame.")
         return None
     return frame
-
 
 # Function to capture the ROI for Aadhar number
 def capture_roi(cap, rect_top_left, rect_bottom_right):
@@ -117,7 +114,6 @@ def capture_roi(cap, rect_top_left, rect_bottom_right):
 
     cv2.destroyAllWindows()
     return captured_frame if capture_successful else None
-
 
 # Main function to capture images and extract Aadhar number
 def main():
@@ -177,27 +173,32 @@ def main():
             full_aadhar_image = frame
             break
         elif key == ord('q'):
-            print("Capture aborted.")
-            cap.release()
-            cv2.destroyAllWindows()
+            print("Quitting...")
             return
 
-    # Release the camera
-    cap.release()
     cv2.destroyAllWindows()
+    cap.release()
 
-    if full_aadhar_image is None:
-        print("Error: Unable to capture full Aadhar card image.")
+    # Resize and convert the captured full image to grayscale
+    full_aadhar_image = resize_and_grayscale(full_aadhar_image)
+
+    # Read the party name from the text file
+    with open("party_name.txt", "r") as file:
+        party_name = file.read().strip()
+
+    if party_name == "A":
+        party_name = "Party A"
+    elif party_name == "B":
+        party_name = "Party B"
+    elif party_name == "C":
+        party_name = "Party C"
+    else:
+        print("Invalid party name in text file.")
         return
 
-    # Resize and convert the full Aadhar image to grayscale
-    full_aadhar_image_resized = resize_and_grayscale(full_aadhar_image)
-
-    # Create and save the combined image with bookmark and watermark
-    combined_image_path = create_combined_image(aadhar_number, full_aadhar_image_resized)
+    # Create the combined image with bookmark and date-time watermark
+    combined_image_path = create_combined_image(aadhar_number, full_aadhar_image, party_name)
     print(f"Combined image saved at: {combined_image_path}")
 
-
-# Run the main function
 if __name__ == "__main__":
     main()
